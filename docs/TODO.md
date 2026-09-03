@@ -13,6 +13,7 @@ as they appear. Priorities: **P1** now/next · **P2** soon · **P3** nice-to-hav
 | 2026-09-03 | Donut: added a minimum visible arc per category so small categories still show their colour (legend keeps exact %) |
 | 2026-09-03 | Fixed connection notice that could never hide (`.banner` display overrode `hidden`); added `[hidden]{display:none!important}`; toned it from a red block to a subtle pill |
 | 2026-09-03 | Server sends `Cache-Control: no-cache` for `index.html` so redeploys are picked up without a hard refresh |
+| 2026-09-03 | Git repo initialised (branch `main`) with `.gitignore` + `.gitattributes`; initial commit |
 | 2026-09-03 | Light/dark/system theme; fixed invisible date-picker icon via `color-scheme` |
 | 2026-09-03 | Currency selector (₹/$/€/£) |
 | 2026-09-03 | Replaced browser `localStorage` storage with **SQLite + FastAPI REST API** |
@@ -29,8 +30,8 @@ as they appear. Priorities: **P1** now/next · **P2** soon · **P3** nice-to-hav
 - [ ] **Automated tests.** `pytest` + `fastapi.testclient`; each test gets a
       temp `BUDGET_DB`. Cover: CRUD happy paths, every validator (`422`),
       `404` on unknown id, list filters (`category` / `month` / `q`).
-- [ ] **`.gitignore` + repo init.** Add the ignore list from
-      [SETUP.md](SETUP.md) §5; initialise version control.
+- [ ] **Push to a remote.** Repo is initialised locally (branch `main`); add a
+      GitHub/GitLab remote and push when ready.
 - [ ] **Currency is a real setting, not just a symbol.** Decide: keep as
       display-only (document it clearly in the UI) *or* store an ISO currency
       code per record and format with `Intl.NumberFormat`.
