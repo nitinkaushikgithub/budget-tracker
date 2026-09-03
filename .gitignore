@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Database (runtime data — not source)
+budget.db
+budget.db-wal
+budget.db-shm
+
+# Server run artifacts
+server.out.log
+server.err.log
+*.log
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

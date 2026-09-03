@@ -1,0 +1,2 @@
+# Normalise line endings: store and check out with LF on every platform
+* text=auto eol=lf
