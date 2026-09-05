@@ -195,6 +195,7 @@
   .cat-tag .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
   .rowbtns { display: flex; gap: 6px; justify-content: flex-end; }
   .rowbtns button { padding: 6px 10px; font-size: 12px; }
+  .desc-note { margin-top: 3px; color: var(--muted); font-size: 12.5px; line-height: 1.4; overflow-wrap: anywhere; }
 
   @media (max-width: 640px) {
     table, thead, tbody, tr, td { display: block; }
@@ -207,6 +208,7 @@
     td.amt { text-align: right; }
     td.actions-cell { justify-content: flex-end; }
     td.actions-cell::before { display: none; }
+    td.td-desc { flex-direction: column; align-items: flex-start; gap: 2px; }
     .rowbtns button { flex: 1; }
   }
 
@@ -247,6 +249,9 @@
 
         <label for="description">Description</label>
         <input id="description" type="text" maxlength="120" placeholder="e.g. Weekly groceries" required />
+
+        <label for="note">Note (optional)</label>
+        <input id="note" type="text" maxlength="200" placeholder="e.g. split with Sam, paid by card" />
 
         <div class="row2">
           <div>
@@ -337,7 +342,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var root = document.documentElement;
   var form = $("expense-form");
-  var elAmount = $("amount"), elDesc = $("description"), elCategory = $("category"), elDate = $("date");
+  var elAmount = $("amount"), elDesc = $("description"), elNote = $("note"), elCategory = $("category"), elDate = $("date");
   var elAmountSym = $("amount-sym");
   var elFormTitle = $("form-title"), elSubmitBtn = $("submit-btn"), elCancelBtn = $("cancel-btn");
   var elCurrency = $("currency"), elThemeBtn = $("theme-btn"), elClearAll = $("clear-all");
@@ -463,11 +468,13 @@
     if (!isFinite(amount) || amount <= 0) { elAmount.focus(); return; }
     if (!elDesc.value.trim()) { elDesc.focus(); return; }
 
+    var note = elNote.value.trim();
     var payload = {
       amount: Math.round(amount * 100) / 100,
       description: elDesc.value.trim(),
       category: elCategory.value,
-      date: elDate.value || todayISO()
+      date: elDate.value || todayISO(),
+      note: note ? note : null
     };
 
     var editing = editingId;
@@ -500,6 +507,7 @@
     editingId = id;
     elAmount.value = rec.amount;
     elDesc.value = rec.description;
+    elNote.value = rec.note != null ? rec.note : "";
     elCategory.value = rec.category;
     elDate.value = rec.date;
     elFormTitle.textContent = "Edit expense";
@@ -687,7 +695,15 @@
       var tr = document.createElement("tr");
 
       tr.appendChild(td("Date", formatDate(r.date)));
-      tr.appendChild(td("Description", r.description || "—"));
+
+      var tdDesc = document.createElement("td");
+      tdDesc.className = "td-desc";
+      tdDesc.setAttribute("data-label", "Description");
+      tdDesc.appendChild(el("div", null, r.description || "—"));
+      if (r.note != null && String(r.note) !== "") {
+        tdDesc.appendChild(el("div", "desc-note", r.note));
+      }
+      tr.appendChild(tdDesc);
 
       var tdCat = document.createElement("td");
       tdCat.setAttribute("data-label", "Category");

@@ -1,6 +1,6 @@
 # Budget Tracker — Architecture
 
-- **Status:** reflects code as of 2026-09-03 (API v1.0.0)
+- **Status:** reflects code as of 2026-09-05 (API v1.1.0)
 - **Style:** single-user local web app — static front end + thin Python API + embedded SQL database
 
 ---
@@ -153,6 +153,7 @@ erDiagram
         string description "1..120 chars, trimmed"
         string category "FK-by-convention -> category.id"
         string date "YYYY-MM-DD"
+        string note "optional, <=200 chars, trimmed, nullable"
         string created_at "UTC ISO-8601"
         string updated_at "UTC ISO-8601"
     }
@@ -182,6 +183,7 @@ CREATE TABLE IF NOT EXISTS expenses (
     description TEXT NOT NULL,
     category    TEXT NOT NULL,
     date        TEXT NOT NULL,
+    note        TEXT,                                -- optional, <=200 chars, trimmed, NULL when empty
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
     updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );

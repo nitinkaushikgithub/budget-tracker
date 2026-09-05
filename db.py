@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS expenses (
     description TEXT NOT NULL,
     category    TEXT NOT NULL,
     date        TEXT NOT NULL,                       -- ISO 'YYYY-MM-DD'
+    note        TEXT,                                -- optional free text, <=200 chars, trimmed; NULL when empty
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
     updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );

@@ -25,21 +25,28 @@ If you see a red bar saying *"Can't reach the server"*, the server isn't running
 | Area | What it's for |
 |------|---------------|
 | **Header** | App title, **currency** selector, **theme** button |
-| **Add expense** (left) | The entry form |
+| **Add expense** (left) | The entry form (amount, description, an optional **note**, category, date) |
 | **Summary** (right) | Totals and the donut chart |
 | **Expenses** (below) | Every record, with filter chips and search |
+
+Where an expense has a note, it appears as a small muted line under its
+description in the **Expenses** list.
 
 ## 4. Adding an expense
 
 1. In **Add expense**, enter:
    - **Amount** — a number greater than 0 (e.g. `249.50`).
-   - **Description** — a short note (up to 120 characters).
+   - **Description** — a short label (up to 120 characters).
+   - **Note** *(optional)* — extra detail, up to 200 characters (e.g. who you
+     split it with, how you paid). Leave it blank if you don't need it; blank
+     notes are simply not stored and nothing shows in the list.
    - **Category** — pick from the dropdown.
    - **Date** — defaults to today; change it with the date picker.
 2. Click **Add expense**.
 
 The record appears at the top of the **Expenses** list and the summary updates
-immediately. The form clears so you can add another.
+immediately. If you added a note, it shows as a muted line under the
+description. The form clears so you can add another.
 
 If something's wrong with the entry (e.g. amount is 0 or blank), the app shows a
 message and nothing is saved.
@@ -48,9 +55,11 @@ message and nothing is saved.
 
 1. Find the row in the **Expenses** list.
 2. Click **Edit**. The form at the top switches to *"Edit expense"* and fills in
-   the current values; the page scrolls up to it.
+   the current values — including the **note** (blank if the record has none);
+   the page scrolls up to it.
 3. Change what you need and click **Save changes** — or click **Cancel** to back
-   out without changing anything.
+   out without changing anything. Leaving the note untouched saves it unchanged;
+   clearing the note box and saving removes the note from that record.
 
 ## 6. Deleting an expense
 

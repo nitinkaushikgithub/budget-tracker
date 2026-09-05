@@ -135,8 +135,10 @@ budget-tracker/
     ├── API.md
     ├── USER_GUIDE.md
     ├── SETUP.md            # this file
+    ├── MIGRATIONS.md       # one-time steps for schema changes on a populated DB
     ├── ARCHITECTURE.md
     ├── BEST_PRACTICES.md
+    ├── adr/                # Architecture Decision Records
     └── TODO.md
 ```
 
@@ -164,20 +166,57 @@ empty.
 $base = "http://127.0.0.1:8000/api"
 $J = 'application/json'
 
+# --- baseline: two expenses created with no note ---
 $a = Invoke-RestMethod "$base/expenses" -Method Post -ContentType $J -Body '{"amount":249.5,"description":"Weekly groceries","category":"groceries","date":"2026-09-01"}'
 $b = Invoke-RestMethod "$base/expenses" -Method Post -ContentType $J -Body '{"amount":60,"description":"Metro card","category":"transport","date":"2026-09-02"}'
+if ($null -ne $a.note) { throw "a.note should be null when no note is sent" }
 
-Invoke-RestMethod "$base/expenses"                             # list (2 rows, newest first)
+# --- optional note: trimmed / whitespace-only -> null / over-length -> capped at 200 ---
+$c = Invoke-RestMethod "$base/expenses" -Method Post -ContentType $J -Body '{"amount":12,"description":"Lunch","category":"food","date":"2026-09-03","note":"  paid by card  "}'
+if ($c.note -ne "paid by card") { throw "c.note should be trimmed to 'paid by card', got '$($c.note)'" }
+$d = Invoke-RestMethod "$base/expenses" -Method Post -ContentType $J -Body '{"amount":5,"description":"Coffee","category":"food","date":"2026-09-03","note":"   "}'
+if ($null -ne $d.note) { throw "d.note should be null for a whitespace-only note" }
+$e = Invoke-RestMethod "$base/expenses" -Method Post -ContentType $J -Body (@{ amount = 9; description = "Textbook"; category = "education"; date = "2026-09-03"; note = ('x' * 250) } | ConvertTo-Json)
+if ($e.note.Length -ne 200) { throw "e.note should be capped at 200 chars, got $($e.note.Length)" }
+
+# --- wrong-type note -> 422 ---
+# (PowerShell 7 raises Microsoft.PowerShell.Commands.HttpResponseException here;
+#  Windows PowerShell 5.1 raises System.Net.WebException. Read the status off
+#  whichever we get.)
+$noteStatus = $null
+try {
+    Invoke-RestMethod "$base/expenses" -Method Post -ContentType $J -Body '{"amount":1,"description":"Bad note","category":"other","date":"2026-09-03","note":123}'
+} catch {
+    if ($_.Exception.Response) { $noteStatus = [int]$_.Exception.Response.StatusCode }
+}
+if ($noteStatus -ne 422) { throw "numeric note should be rejected with 422, got $noteStatus" }
+
+Invoke-RestMethod "$base/expenses"                             # list (5 rows, newest first)
 Invoke-RestMethod "$base/expenses?category=transport"          # filter
 Invoke-RestMethod "$base/expenses/$($a.id)" -Method Put -ContentType $J -Body '{"amount":300.75,"description":"Groceries fixed","category":"food","date":"2026-09-01"}'
+
+# --- PUT sets a note, then a PUT that omits note clears it (full-replace) ---
+$c2 = Invoke-RestMethod "$base/expenses/$($c.id)" -Method Put -ContentType $J -Body '{"amount":12,"description":"Lunch","category":"food","date":"2026-09-03","note":"refund pending"}'
+if ($c2.note -ne "refund pending") { throw "PUT should update c.note to 'refund pending', got '$($c2.note)'" }
+$c3 = Invoke-RestMethod "$base/expenses/$($c.id)" -Method Put -ContentType $J -Body '{"amount":12,"description":"Lunch","category":"food","date":"2026-09-03"}'
+if ($null -ne $c3.note) { throw "PUT omitting note should clear it" }
+
+$rows = Invoke-RestMethod "$base/expenses"
+if (-not ($rows[0].PSObject.Properties.Name -contains 'note')) { throw "list rows should expose a note member" }
+
 Invoke-WebRequest  "$base/expenses/$($a.id)" -Method Delete -UseBasicParsing   # 204
 Invoke-WebRequest  "$base/expenses/$($b.id)" -Method Delete -UseBasicParsing   # 204
+Invoke-WebRequest  "$base/expenses/$($c.id)" -Method Delete -UseBasicParsing   # 204
+Invoke-WebRequest  "$base/expenses/$($d.id)" -Method Delete -UseBasicParsing   # 204
+Invoke-WebRequest  "$base/expenses/$($e.id)" -Method Delete -UseBasicParsing   # 204
 
 Invoke-RestMethod "$base/expenses"                             # [] empty
 ```
 
 Expected: POST → `201`, PUT → `200`, DELETE → `204`, invalid bodies → `422`,
-unknown id → `404`.
+unknown id → `404`. The optional `note` is trimmed and capped at 200 chars,
+comes back `null` when omitted / empty / whitespace-only, and a `PUT` that omits
+`note` clears it.
 
 ### Inspecting the database directly
 
@@ -201,6 +240,11 @@ Or use a GUI such as [DB Browser for SQLite](https://sqlitebrowser.org/).
 Remove-Item budget.db, budget.db-wal, budget.db-shm -ErrorAction SilentlyContinue
 # next start recreates an empty schema
 ```
+
+> **Keeping an existing `budget.db` across a schema change?** `init_db()` never
+> `ALTER`s a table, so a populated database needs a one-time manual migration —
+> see [MIGRATIONS.md](MIGRATIONS.md). Deleting the file as above is only for
+> when you are happy to start empty.
 
 ---
 
@@ -236,6 +280,11 @@ keep data outside the code tree so a redeploy never risks it:
 $env:BUDGET_DB = "D:\data\budget\budget.db"
 ```
 
+When you pull a release that changes the schema, an existing file at
+`BUDGET_DB` is **not** upgraded automatically (`init_db()` only creates missing
+tables/indexes). Run the matching one-time step in
+[MIGRATIONS.md](MIGRATIONS.md) against that file first.
+
 ### 7.3 Swap SQLite for another engine (e.g. PostgreSQL)
 
 `db.py` is the only module that touches storage. To migrate:
@@ -264,7 +313,10 @@ The API contract and the front end do not change.
 ### 7.5 Backups
 
 `budget.db` is a single file. Copy it while the server is stopped, or use
-SQLite's online backup API / `VACUUM INTO 'backup.db'` while it runs.
+SQLite's online backup API / `VACUUM INTO 'backup.db'` while it runs. The
+one-time schema migrations in [MIGRATIONS.md](MIGRATIONS.md) take a
+`Copy-Item budget.db budget.db.bak` backup as their first real step and use it
+as the primary rollback.
 
 ---
 

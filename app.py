@@ -48,7 +48,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Budget Tracker API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Budget Tracker API", version="1.1.0", lifespan=lifespan)
 
 # Same-origin by default (the API serves index.html itself). To call this API
 # from a front end on another origin, set BUDGET_CORS to a comma-separated list
@@ -71,6 +71,7 @@ class ExpenseIn(BaseModel):
     description: str
     category: str
     date: str
+    note: Optional[str] = None
 
     @field_validator("amount")
     @classmethod
@@ -102,6 +103,15 @@ class ExpenseIn(BaseModel):
         except ValueError:
             raise ValueError("date must be 'YYYY-MM-DD'")
         return v
+
+    @field_validator("note")
+    @classmethod
+    def _note_clean(cls, v: Optional[str]) -> Optional[str]:
+        # Pydantic runs this for an explicit null but not for an omitted field.
+        if v is None:
+            return None
+        v = v.strip()
+        return v[:200] or None
 
 
 class Expense(ExpenseIn):
@@ -149,9 +159,9 @@ def list_expenses(
 def create_expense(payload: ExpenseIn, conn=Depends(get_conn)) -> dict:
     new_id = str(uuid.uuid4())
     conn.execute(
-        "INSERT INTO expenses (id, amount, description, category, date) "
-        "VALUES (?, ?, ?, ?, ?)",
-        (new_id, payload.amount, payload.description, payload.category, payload.date),
+        "INSERT INTO expenses (id, amount, description, category, date, note) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (new_id, payload.amount, payload.description, payload.category, payload.date, payload.note),
     )
     row = conn.execute("SELECT * FROM expenses WHERE id = ?", (new_id,)).fetchone()
     return dict(row)
@@ -165,9 +175,9 @@ def update_expense(expense_id: str, payload: ExpenseIn, conn=Depends(get_conn)) 
     if not exists:
         raise HTTPException(status_code=404, detail="expense not found")
     conn.execute(
-        "UPDATE expenses SET amount = ?, description = ?, category = ?, date = ?, "
+        "UPDATE expenses SET amount = ?, description = ?, category = ?, date = ?, note = ?, "
         "updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ?",
-        (payload.amount, payload.description, payload.category, payload.date, expense_id),
+        (payload.amount, payload.description, payload.category, payload.date, payload.note, expense_id),
     )
     row = conn.execute(
         "SELECT * FROM expenses WHERE id = ?", (expense_id,)

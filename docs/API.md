@@ -1,6 +1,6 @@
 # Budget Tracker — API Reference
 
-- **API version:** 1.0.0
+- **API version:** 1.1.0
 - **Base URL (default):** `http://127.0.0.1:8000`
 - **Content type:** `application/json` for all request and response bodies (except `GET /` which returns HTML, and `DELETE` which returns no body).
 - **Interactive docs:** `GET /docs` (Swagger UI) · `GET /openapi.json` (machine-readable schema)
@@ -72,6 +72,7 @@ then `created_at` descending. There is no pagination in v1.0.
 | `description` | string | 1–120 chars, trimmed server-side |
 | `category` | string | One of the [`Category.id`](#22-category) values |
 | `date` | string | `YYYY-MM-DD` |
+| `note` | string \| null | Optional free text, ≤ 200 chars, trimmed server-side; `null` when absent or empty after trim |
 | `created_at` | string | UTC ISO-8601, set on create |
 | `updated_at` | string | UTC ISO-8601, updated on every write |
 
@@ -93,11 +94,13 @@ v1.0 ids: `food`, `groceries`, `transport`, `housing`, `utilities`,
   "amount": 249.5,
   "description": "Weekly groceries",
   "category": "groceries",
-  "date": "2026-09-01"
+  "date": "2026-09-01",
+  "note": "paid by card"
 }
 ```
 
-Validation rules (server-side, all fields required):
+Validation rules (server-side; `amount`, `description`, `category`, `date` are
+required, `note` is optional):
 
 | Field | Rule | Message on failure |
 |-------|------|--------------------|
@@ -105,6 +108,12 @@ Validation rules (server-side, all fields required):
 | `description` | non-empty after trim; truncated to 120 | `description is required` |
 | `category` | in the known id set | `unknown category: '<value>'` |
 | `date` | parses as `YYYY-MM-DD` calendar date | `date must be 'YYYY-MM-DD'` |
+| `note` | optional string; trimmed, then truncated to 200 chars; empty/whitespace-only (or omitted / `null`) is stored as `null` | *(non-string, e.g. a number)* `Input should be a valid string` |
+
+**`PUT` and `note`:** `PUT` is a full replace (see [3.5](#35-put-apiexpensesid)).
+A `PUT` body that **omits** `note` (or sends `null` / `""`) **clears** any
+existing note — it does not mean "leave unchanged". Send the current value to
+keep it.
 
 ---
 
@@ -160,6 +169,7 @@ List expense records, newest first.
     "description": "Weekly groceries",
     "category": "groceries",
     "date": "2026-09-01",
+    "note": "paid by card",
     "created_at": "2026-09-03T09:07:16Z",
     "updated_at": "2026-09-03T09:07:16Z"
   }
@@ -264,4 +274,5 @@ Serves `index.html` (the web UI). `Content-Type: text/html`.
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1.0 | 2026-09-05 | `Expense` gains an optional `note` field (`string` or `null`; ≤ 200 chars, trimmed, `null` when empty). Settable on `POST` and `PUT`, returned by every endpoint that returns an expense. `PUT` clears an omitted note (full-replace semantics). No status-code changes; `q` still matches `description` only. |
 | 1.0.0 | 2026-09-03 | Initial API: health, categories, expenses CRUD, list filters. |

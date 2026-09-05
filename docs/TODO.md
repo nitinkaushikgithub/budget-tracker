@@ -27,6 +27,14 @@ as they appear. Priorities: **P1** now/next · **P2** soon · **P3** nice-to-hav
 
 ## P1 — now / next
 
+- [ ] **Optional expense `note`** (ADR [0001](adr/0001-optional-expense-note.md),
+      branch `demo/expense-note`). Task 1 done: `note` on the model + `SCHEMA`
+      (fresh DBs) + `INSERT`/`UPDATE` + API bumped to v1.1.0 + docs. Task 2 done:
+      one-time populated-DB migration documented in
+      [MIGRATIONS.md](MIGRATIONS.md) §1 (`ALTER TABLE expenses ADD COLUMN note
+      TEXT`, reversible), linked from SETUP.md §6/§7. Task 3 done: UI note field
+      in the add/edit form + muted line under the description + USER_GUIDE
+      §3–§5. All three tasks complete — ready for QA.
 - [ ] **Automated tests.** `pytest` + `fastapi.testclient`; each test gets a
       temp `BUDGET_DB`. Cover: CRUD happy paths, every validator (`422`),
       `404` on unknown id, list filters (`category` / `month` / `q`).
@@ -51,6 +59,9 @@ as they appear. Priorities: **P1** now/next · **P2** soon · **P3** nice-to-hav
       API note (values stay decimal in JSON).
 - [ ] **`PATCH /api/expenses/{id}`** for partial updates (UI currently always
       sends all fields via `PUT`).
+- [ ] **Extend `q` to match notes.** `GET /api/expenses?q=` currently matches
+      `description` only; include the new `note` column (ADR 0001 §4). Needs the
+      `LIKE` clause widened in `list_expenses`; note stays unindexed.
 - [ ] **Date range filter** in the API (`from` / `to`) and matching UI control.
 - [ ] **Export** (CSV / JSON) endpoint — deferred by product decision earlier;
       revisit only if the user asks. If added, it's an API endpoint, not a

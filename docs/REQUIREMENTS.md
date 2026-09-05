@@ -1,7 +1,7 @@
 # Budget Tracker — Requirements Specification
 
-- **Document status:** Baseline v1.0
-- **Last updated:** 2026-09-03
+- **Document status:** Baseline v1.0 (+ optional expense `note`, API v1.1.0)
+- **Last updated:** 2026-09-05
 - **Owner:** project maintainer
 - **Related docs:** [ARCHITECTURE](ARCHITECTURE.md) · [API](API.md) · [USER_GUIDE](USER_GUIDE.md) · [SETUP](SETUP.md)
 
@@ -58,6 +58,7 @@ IDs are stable references for traceability. **MoSCoW**: M = Must, S = Should, C 
 | FR-5 | M | **Date** must be a valid calendar date in `YYYY-MM-DD` format. |
 | FR-6 | S | The entry form defaults the date to today. |
 | FR-7 | S | Invalid input is rejected by the API with a client-error status and a machine-readable reason. |
+| FR-30 | S | The user can attach an **optional free-text note** to an expense on create and update. It is trimmed of surrounding whitespace and limited to 200 characters; empty or whitespace-only (or omitted) is stored as no note (`NULL`). The note is returned by every endpoint that returns an expense. A full-replace `PUT` that omits the note clears it. |
 
 ### 4.2 Category taxonomy
 
@@ -139,6 +140,7 @@ IDs are stable references for traceability. **MoSCoW**: M = Must, S = Should, C 
 | `description` | string | 1–120 chars, trimmed |
 | `category` | string | Must match a known category `id` |
 | `date` | string | `YYYY-MM-DD`, valid calendar date |
+| `note` | string \| null | Optional; trimmed then capped at 200 chars; empty/whitespace-only/omitted stored as `NULL` |
 | `created_at` | string | UTC ISO-8601 `YYYY-MM-DDTHH:MM:SSZ`, set on insert |
 | `updated_at` | string | UTC ISO-8601, set on insert and every update |
 
@@ -168,6 +170,7 @@ Indexes: `idx_expenses_date(date)`, `idx_expenses_category(category)`.
 | Requirement | Implemented in | Verified by |
 |-------------|----------------|-------------|
 | FR-1..FR-7 | `app.py` `ExpenseIn`, `create_expense` | API smoke test; UI form |
+| FR-30 | `app.py` `ExpenseIn._note_clean`, `create_expense`, `update_expense`; `db.py` `SCHEMA` (`note` column) | SETUP smoke test (`note` cases) |
 | FR-8..FR-10 | `app.py` `CATEGORIES`, `/api/categories` | `GET /api/categories` returns 10 |
 | FR-11..FR-15 | `app.py` `list_expenses`; `index.html` `renderTable`, filters | Filter test in SETUP |
 | FR-16..FR-20 | `app.py` `update_expense`, `delete_expense`; `index.html` | CRUD smoke test |
